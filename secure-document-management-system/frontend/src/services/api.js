@@ -1,0 +1,32 @@
+import axios from 'axios';
+
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('sdms_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Centralized 401 handling: clear session and bounce to login.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('sdms_token');
+      localStorage.removeItem('sdms_user');
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
